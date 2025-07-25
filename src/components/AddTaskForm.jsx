@@ -27,19 +27,19 @@ const AddTaskForm = ({ refreshTasks }) => {
 
     try{
       // Fetch existing tasks
-      const res = await axios.get('${SHEETDB_URL}?sheet=Items');
+      const res = await axios.get(`${SHEETDB_URL}?sheet=Items`);
       const tasks = res.data;
 
       // Find highest existing ID
       const maxID = tasks.reduce((max, task) => {
         const id = parseInt(task.ID);
-        return isNan(id) ? max : Math.max(max, id);
+        return isNaN(id) ? max : Math.max(max, id);
       }, 0);
 
       // Build the form data with the next ID
       const newTask = {
         ...form,
-        ID: (maxID + 1).toString(), //SheetDB expects string I guess?
+        ID: (maxID + 1).toString(), //SheetDB stores all fields as strings
       };
 
       // Submit to SheetDB
