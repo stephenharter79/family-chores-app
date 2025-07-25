@@ -12,10 +12,8 @@ const AddTaskForm = ({ refreshTasks }) => {
     Frequency_days: '',
     LastDone: '',
     LastDoneBy: '',
-    NextDue: '',
     Budget: '$0',
     BudgetYear: '',
-    AdjBudget: '',
   });
 
   const handleChange = (e) => {
@@ -40,6 +38,8 @@ const AddTaskForm = ({ refreshTasks }) => {
       const newTask = {
         ...form,
         ID: (maxID + 1).toString(), //SheetDB stores all fields as strings
+        NextDue: `=INDIRECT("G"&ROW())+INDIRECT("H"&ROW())`,
+        AdjBudget: `=POWER(1.04,YEAR(TODAY())-2025)*INDIRECT("K"&ROW())`,
       };
 
       // Submit to SheetDB
@@ -60,10 +60,8 @@ const AddTaskForm = ({ refreshTasks }) => {
         Frequency_days: '',
         LastDone: '',
         LastDoneBy: '',
-        NextDue: '',
         Budget: '$0',
         BudgetYear: '',
-        AdjBudget: '',
       });
     } catch (error) {
       console.error('Error adding task:', error)
