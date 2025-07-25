@@ -10,7 +10,12 @@ const AddTaskForm = ({ refreshTasks }) => {
     Description: '',
     AssignedTo: '',
     Frequency_days: '',
+    LastDone: '',
+    LastDoneBy: '',
+    NextDue: '',
     Budget: '$0',
+    BudgetYear: '',
+    AdjBudget: '',
   });
 
   const handleChange = (e) => {
@@ -19,12 +24,50 @@ const AddTaskForm = ({ refreshTasks }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    await axios.post(SHEETDB_URL, {
-      data: [form],
-      sheet: 'Items',
-    });
-    refreshTasks();
-    setForm({ Realm: '', Type: '', Room_Subrealm: '', Description: '', AssignedTo: '', Frequency_days: '', Budget: '$0' });
+
+    try{
+      // Fetch existing tasks
+      const res = await axios.get('${SHEETDB_URL}?sheet=Items');
+      const tasks = res.data;
+
+      // Find highest existing ID
+      const maxID = tasks.reduce((max, task) => {
+        const id = parseInt(task.ID);
+        return isNan(id) ? max : Math.max(max, id);
+      }, 0);
+
+      // Build the form data with the next ID
+      const newTask = {
+        ...form,
+        ID: (maxID + 1).toString(), //SheetDB expects string I guess?
+      };
+
+      // Submit to SheetDB
+      await axios.post(SHEETDB_URL, {
+        data: [newTask],
+        sheet: 'Items',
+      });
+
+      refreshTasks();
+
+      // Reset form
+      setForm({
+        Realm: '',
+        Type: '',
+        Room_Subrealm: '',
+        Description: '',
+        AssignedTo: '',
+        Frequency_days: '',
+        LastDone: '',
+        LastDoneBy: '',
+        NextDue: '',
+        Budget: '$0',
+        BudgetYear: '',
+        AdjBudget: '',
+      });
+    } catch (error) {
+      console.error('Error adding task:', error)
+    }
   };
 
   return (
