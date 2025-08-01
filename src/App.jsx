@@ -1,31 +1,21 @@
-import React, { useEffect, useState } from 'react';
-import axios from 'axios';
-import { SHEETDB_URL } from './config';
-import TaskList from './components/TaskList';
+// src/App.jsx
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import Home from './pages/Home';
 import AddTaskForm from './components/AddTaskForm';
+import ViewTasks from './pages/ViewTasks';
 
 function App() {
-  const [tasks, setTasks] = useState([]);
-
-  const fetchTasks = async () => {
-    try {
-      const res = await axios.get(`${SHEETDB_URL}/search?sheet=Items`);
-      setTasks(res.data);
-    } catch (err) {
-      console.error('Error fetching tasks', err);
-    }
-  };
-
-  useEffect(() => {
-    fetchTasks();
-  }, []);
-
   return (
-    <div className="p-4 max-w-4xl mx-auto">
-      <h1 className="text-2xl font-bold mb-4">Family Chores & Projects</h1>
-      <AddTaskForm refreshTasks={fetchTasks} />
-      <TaskList tasks={tasks} refreshTasks={fetchTasks} />
-    </div>
+    <Router>
+      <div className="min-h-screen bg-gray-100 p-4">
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/add-task" element={<AddTaskForm />} />
+          <Route path="/view-tasks" element={<ViewTasks />} />
+        </Routes>
+      </div>
+    </Router>
   );
 }
 
