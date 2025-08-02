@@ -1,89 +1,145 @@
-import React, { useState } from 'react';
-import axios from 'axios';
-import { SHEETDB_URL } from '../config';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
-const AddTaskForm = ({ refreshTasks }) => {
-  const [form, setForm] = useState({
-    Realm: '',
-    Type: '',
-    Room_Subrealm: '',
-    Description: '',
-    AssignedTo: '',
-    Frequency_days: '',
-    LastDone: '',
-    LastDoneBy: '',
-    Budget: '$0',
-    BudgetYear: '',
+const AddTaskForm = ({ onAddTask }) => {
+  const [formData, setFormData] = useState({
+    TaskName: "",
+    Type: "Chore",
+    Realm: "Home",
+    Room_Subrealm: "",
+    Frequency_days: "",
+    TaskDate: "",
+    AssignedTo: "Steve",
+    Budget: "",
+    Notes: "",
+    Priority: "3",
   });
 
+  const navigate = useNavigate();
+
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
-
-    try{
-      // Fetch existing tasks
-      const res = await axios.get(`${SHEETDB_URL}?sheet=Items`);
-      const tasks = res.data;
-
-      // Find highest existing ID
-      const maxID = tasks.reduce((max, task) => {
-        const id = parseInt(task.ID);
-        return isNaN(id) ? max : Math.max(max, id);
-      }, 0);
-
-      // Build the form data with the next ID
-      const newTask = {
-        ...form,
-        ID: (maxID + 1).toString(), //SheetDB stores all fields as strings
-        NextDue: `=INDIRECT("G"&ROW())+INDIRECT("H"&ROW())`,
-        AdjBudget: `=POWER(1.04,YEAR(TODAY())-2025)*INDIRECT("K"&ROW())`,
-      };
-
-      // Submit to SheetDB
-      await axios.post(SHEETDB_URL, {
-        data: [newTask],
-        sheet: 'Items',
-      });
-
-      refreshTasks();
-
-      // Reset form
-      setForm({
-        Realm: '',
-        Type: '',
-        Room_Subrealm: '',
-        Description: '',
-        AssignedTo: '',
-        Frequency_days: '',
-        LastDone: '',
-        LastDoneBy: '',
-        Budget: '$0',
-        BudgetYear: '',
-      });
-    } catch (error) {
-      console.error('Error adding task:', error)
-    }
+    onAddTask(formData);
   };
 
   return (
-    <form onSubmit={handleSubmit} className="mb-6 grid grid-cols-2 gap-4">
-      {Object.keys(form).map((key) => (
+    <div className="p-4">
+      <h2 className="text-xl font-bold mb-4">Add Task</h2>
+      <form onSubmit={handleSubmit} className="space-y-4">
         <input
-          key={key}
-          name={key}
-          value={form[key]}
+          type="text"
+          name="TaskName"
+          placeholder="Task Name"
+          value={formData.TaskName}
           onChange={handleChange}
-          placeholder={key.replace('_', ' ')}
-          className="p-2 border rounded"
+          className="w-full border p-2 rounded"
+          required
         />
-      ))}
-      <button className="col-span-2 bg-blue-600 text-white px-4 py-2 rounded" type="submit">
-        Add Task
-      </button>
-    </form>
+
+        <select
+          name="Type"
+          value={formData.Type}
+          onChange={handleChange}
+          className="w-full border p-2 rounded"
+        >
+          {['Chore', 'Expense', 'Task'].map((type) => (
+            <option key={type} value={type}>{type}</option>
+          ))}
+        </select>
+
+        <select
+          name="Realm"
+          value={formData.Realm}
+          onChange={handleChange}
+          className="w-full border p-2 rounded"
+        >
+          {['Auto','Clothing','College','Computer','Computing','Finance','Gifts','Health','Home','Learning','Misc','School','Sports'].map((realm) => (
+            <option key={realm} value={realm}>{realm}</option>
+          ))}
+        </select>
+
+        <input
+          type="text"
+          name="Room_Subrealm"
+          placeholder="Room or Subrealm"
+          value={formData.Room_Subrealm}
+          onChange={handleChange}
+          className="w-full border p-2 rounded"
+        />
+
+        <input
+          type="number"
+          name="Frequency_days"
+          placeholder="Frequency in days"
+          value={formData.Frequency_days}
+          onChange={handleChange}
+          className="w-full border p-2 rounded"
+        />
+
+        <input
+          type="date"
+          name="TaskDate"
+          value={formData.TaskDate}
+          onChange={handleChange}
+          className="w-full border p-2 rounded"
+        />
+
+        <select
+          name="AssignedTo"
+          value={formData.AssignedTo}
+          onChange={handleChange}
+          className="w-full border p-2 rounded"
+        >
+          {['Steve', 'Liz', 'Caty', 'Matt', 'Tess', 'All', 'Other'].map((person) => (
+            <option key={person} value={person}>{person}</option>
+          ))}
+        </select>
+
+        <select
+          name="Priority"
+          value={formData.Priority}
+          onChange={handleChange}
+          className="w-full border p-2 rounded"
+        >
+          {[1, 2, 3, 4, 5].map((priority) => (
+            <option key={priority} value={priority}>{priority}</option>
+          ))}
+        </select>
+
+        <input
+          type="number"
+          name="Budget"
+          placeholder="Budget (optional)"
+          value={formData.Budget}
+          onChange={handleChange}
+          className="w-full border p-2 rounded"
+        />
+
+        <textarea
+          name="Notes"
+          placeholder="Notes"
+          value={formData.Notes}
+          onChange={handleChange}
+          className="w-full border p-2 rounded"
+        />
+
+        <div className="flex gap-4">
+          <button type="submit" className="bg-green-500 text-white px-4 py-2 rounded">Submit</button>
+          <button
+            type="button"
+            onClick={() => navigate("/")}
+            className="bg-gray-300 px-4 py-2 rounded"
+          >
+            Home
+          </button>
+        </div>
+      </form>
+    </div>
   );
 };
 

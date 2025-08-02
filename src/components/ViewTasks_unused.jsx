@@ -11,7 +11,6 @@ const ViewTasks = () => {
     Type: "",
     startDate: "",
     endDate: "",
-    sortBy: "date",
   });
 
   const [tasks, setTasks] = useState([]);
@@ -40,7 +39,7 @@ const ViewTasks = () => {
     try {
       const response = await fetch("https://sheetdb.io/api/v1/tltoey88bbdu6");
       const data = await response.json();
-      let filtered = data.filter((task) => {
+      const filtered = data.filter((task) => {
         const assignedOk =
           filters.AssignedTo.length === 0 ||
           filters.AssignedTo.includes(task.AssignedTo);
@@ -53,13 +52,6 @@ const ViewTasks = () => {
           (!filters.endDate || new Date(nextDue) <= new Date(filters.endDate));
         return assignedOk && priorityOk && realmOk && typeOk && dateOk;
       });
-
-      if (filters.sortBy === "priority") {
-        filtered.sort((a, b) => parseInt(a.Priority || 5) - parseInt(b.Priority || 5));
-      } else {
-        filtered.sort((a, b) => new Date(a.NextDue || a.TaskDate) - new Date(b.NextDue || b.TaskDate));
-      }
-
       setTasks(filtered);
     } catch (err) {
       console.error("Error fetching tasks:", err);
@@ -141,13 +133,6 @@ const ViewTasks = () => {
           </label>
           <label className="block mt-2">End Date:
             <input type="date" name="endDate" value={filters.endDate} onChange={handleFilterChange} className="w-full border p-2 rounded" />
-          </label>
-
-          <label className="block mt-2">Sort By:
-            <select name="sortBy" value={filters.sortBy} onChange={handleFilterChange} className="w-full border p-2 rounded">
-              <option value="date">Due Date</option>
-              <option value="priority">Priority</option>
-            </select>
           </label>
         </div>
       </div>
