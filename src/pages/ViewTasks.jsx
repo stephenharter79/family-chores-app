@@ -74,7 +74,23 @@ const ViewTasks = () => {
     const cost = prompt("Cost?");
     const notes = prompt("Notes?");
 
+    // Fetch completions to find max ID
+    const completionsRes = await fetch(
+      "https://sheetdb.io/api/v1/tltoey88bbdu6?sheet=Completions"
+    );
+
+    const completionsData = await completionsRes.json();
+
+    let newId = 1;
+    if (completionsData.length > 0) {
+      const ids = completionsData
+        .map((row) => parseInt(row.ID, 10))
+        .filter((id) => !isNaN(id));
+      newID = Math.max(...ids) + 1;
+    }
+
     const completionRecord = {
+      ID: newID,
       TaskID: task.ID,
       CompletedDate: completedDate,
       CompletedBy: completedBy,
@@ -83,7 +99,7 @@ const ViewTasks = () => {
     };
 
     try {
-      await fetch("https://sheetdb.io/api/v1/tltoey88bbdu6/Completions", {
+      await fetch("https://sheetdb.io/api/v1/tltoey88bbdu6?sheet=Completions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ data: [completionRecord] }),
