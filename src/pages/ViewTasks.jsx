@@ -86,11 +86,11 @@ const ViewTasks = () => {
       const ids = completionsData
         .map((row) => parseInt(row.ID, 10))
         .filter((id) => !isNaN(id));
-      newID = Math.max(...ids) + 1;
+      newId = Math.max(...ids) + 1;
     }
 
     const completionRecord = {
-      ID: newID,
+      ID: newId,
       TaskID: task.ID,
       CompletedDate: completedDate,
       CompletedBy: completedBy,
