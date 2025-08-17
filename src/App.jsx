@@ -1,25 +1,46 @@
 // src/App.jsx
-// src/App.jsx
 import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import axios from "axios";
 import Home from "./pages/Home";
 import AddTaskForm from "./components/AddTaskForm";
 import ViewTasks from "./pages/ViewTasks";
 import { SHEETDB_URL } from "./config";
 
 function App() {
-  // Handler to add a new task to Items sheet
+  // handler for adding tasks
   const handleAddTask = async (formData) => {
     try {
-      // Post to the Items sheet
-      await axios.post(`${SHEETDB_URL}?sheet=Items`, {
-        data: [formData],
+      // find next ID from Items
+      const listRes = await fetch(`${SHEETDB_URL}?sheet=Items`);
+      const list = await listRes.json();
+      let nextId = 1;
+      if (Array.isArray(list) && list.length > 0) {
+        const ids = list
+          .map((r) => parseInt(r.ID, 10))
+          .filter((n) => !Number.isNaN(n));
+        if (ids.length > 0) nextId = Math.max(...ids) + 1;
+      }
+
+      // build record
+      const taskRecord = {
+        ID: String(nextId),
+        ...formData,
+      };
+
+      // post to Items sheet
+      const res = await fetch(`${SHEETDB_URL}?sheet=Items`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ data: [taskRecord] }),
       });
-      alert("Task added!");
+
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`POST failed ${res.status}: ${text}`);
+      }
     } catch (err) {
       console.error("Failed to add task:", err);
-      alert("Error adding task");
+      throw err;
     }
   };
 

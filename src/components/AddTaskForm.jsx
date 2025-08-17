@@ -1,3 +1,4 @@
+// src/components/AddTaskForm.jsx
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -22,9 +23,15 @@ const AddTaskForm = ({ onAddTask }) => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    onAddTask(formData);
+    try {
+      await onAddTask(formData);
+      alert("Task successfully added!");
+      navigate("/"); // back to home
+    } catch (err) {
+      alert("Failed to add task. See console for details.");
+    }
   };
 
   return (
@@ -47,8 +54,10 @@ const AddTaskForm = ({ onAddTask }) => {
           onChange={handleChange}
           className="w-full border p-2 rounded"
         >
-          {['Chore', 'Expense', 'Task'].map((type) => (
-            <option key={type} value={type}>{type}</option>
+          {["Chore", "Expense", "Task"].map((type) => (
+            <option key={type} value={type}>
+              {type}
+            </option>
           ))}
         </select>
 
@@ -58,8 +67,24 @@ const AddTaskForm = ({ onAddTask }) => {
           onChange={handleChange}
           className="w-full border p-2 rounded"
         >
-          {['Auto','Clothing','College','Computer','Computing','Finance','Gifts','Health','Home','Learning','Misc','School','Sports'].map((realm) => (
-            <option key={realm} value={realm}>{realm}</option>
+          {[
+            "Auto",
+            "Clothing",
+            "College",
+            "Computer",
+            "Computing",
+            "Finance",
+            "Gifts",
+            "Health",
+            "Home",
+            "Learning",
+            "Misc",
+            "School",
+            "Sports",
+          ].map((realm) => (
+            <option key={realm} value={realm}>
+              {realm}
+            </option>
           ))}
         </select>
 
@@ -95,9 +120,13 @@ const AddTaskForm = ({ onAddTask }) => {
           onChange={handleChange}
           className="w-full border p-2 rounded"
         >
-          {['Steve', 'Liz', 'Caty', 'Matt', 'Tess', 'All', 'Other'].map((person) => (
-            <option key={person} value={person}>{person}</option>
-          ))}
+          {["Steve", "Liz", "Caty", "Matt", "Tess", "All", "Other"].map(
+            (person) => (
+              <option key={person} value={person}>
+                {person}
+              </option>
+            )
+          )}
         </select>
 
         <select
@@ -107,7 +136,9 @@ const AddTaskForm = ({ onAddTask }) => {
           className="w-full border p-2 rounded"
         >
           {[1, 2, 3, 4, 5].map((priority) => (
-            <option key={priority} value={priority}>{priority}</option>
+            <option key={priority} value={priority}>
+              {priority}
+            </option>
           ))}
         </select>
 
@@ -129,7 +160,12 @@ const AddTaskForm = ({ onAddTask }) => {
         />
 
         <div className="flex gap-4">
-          <button type="submit" className="bg-green-500 text-white px-4 py-2 rounded">Submit</button>
+          <button
+            type="submit"
+            className="bg-green-500 text-white px-4 py-2 rounded"
+          >
+            Submit
+          </button>
           <button
             type="button"
             onClick={() => navigate("/")}
