@@ -94,6 +94,14 @@ const ViewTasks = () => {
     }
   };
 
+  // helper to format date as MM/DD/YYYY
+  const formatDate = (date) => {
+    const mm = String(date.getMonth() + 1).padStart(2, "0");
+    const dd = String(date.getDate()).padStart(2, "0");
+    const yyyy = date.getFullYear();
+    return `${mm}/${dd}/${yyyy}`;
+  };
+
   const markComplete = async (task) => {
     const completedDate = prompt(
       "Enter completion date (YYYY-MM-DD)",
@@ -119,9 +127,9 @@ const ViewTasks = () => {
       // 2) Build record using EXACT header names in your sheet
       const completionRecord = {
         ID: String(nextId),
-        "Item ID": task.ID, // matches your Completions header
-        "Completed By": completedBy,
-        "Completed Date": completedDate,
+        TaskID: task.ID, // matches your Completions header
+        CompletedBy: completedBy,
+        CompletedDate: formatDate(new Date(completedDate)),
         Cost: cost || "",
         Notes: notes || "",
       };
