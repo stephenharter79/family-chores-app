@@ -1,191 +1,216 @@
 // src/components/AddTaskForm.jsx
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { SHEETDB_URL } from "../config";
 
-const AddTaskForm = ({ onAddTask }) => {
-  console.log("AddTaskForm mounted, onAddTask:", onAddTask); // 👈 DEBUG LINE
-  console.log("AddTaskForm props:", { onAddTask });
-  
+const realms = [
+  "Auto",
+  "Clothing",
+  "College",
+  "Computer",
+  "Computing",
+  "Finance",
+  "Gifts",
+  "Health",
+  "Home",
+  "Learning",
+  "Misc",
+  "School",
+  "Sports",
+];
+
+const types = ["Chore", "Task", "Expense"];
+const priorities = [1, 2, 3, 4, 5];
+
+export default function AddTaskForm({ onAddTask }) {
   const [formData, setFormData] = useState({
-    TaskName: "",
-    Type: "Chore",
-    Realm: "Home",
+    Realm: realms[0],
+    Type: types[0],
     Room_Subrealm: "",
+    Description: "",
+    AssignedTo: "",
     Frequency_days: "",
-    TaskDate: "",
-    AssignedTo: "Steve",
     Budget: "",
+    BudgetYear: new Date().getFullYear(),
+    Priority: 3,
+    TaskDate: "",
     Notes: "",
-    Priority: "3",
   });
-
-  const navigate = useNavigate();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData({ ...formData, [name]: value });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!onAddTask) {
-      console.error("onAddTask is not defined!");
-      alert("Task submission is not wired up.");
-      return;
+
+    // format TaskDate → MM/DD/YYYY
+    let formattedDate = formData.TaskDate;
+    if (formattedDate) {
+      const d = new Date(formData.TaskDate);
+      formattedDate =
+        (d.getMonth() + 1).toString().padStart(2, "0") +
+        "/" +
+        d.getDate().toString().padStart(2, "0") +
+        "/" +
+        d.getFullYear();
     }
+
+    const payload = {
+      Realm: formData.Realm,
+      Type: formData.Type,
+      Room_Subrealm: formData.Room_Subrealm,
+      Description: formData.Description,
+      AssignedTo: formData.AssignedTo,
+      Frequency_days: formData.Frequency_days,
+      Budget: formData.Budget,
+      BudgetYear: formData.BudgetYear || new Date().getFullYear(),
+      Priority: formData.Priority,
+      TaskDate: formattedDate,
+      Notes: formData.Notes,
+      // ID, LastDone, LastDoneBy, NextDue, AdjBudget → leave blank
+    };
+
     try {
-      await onAddTask(formData);
-      alert("Task successfully added!");
-      navigate("/"); // back to home
+      const res = await fetch(SHEETDB_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ data: [payload] }),
+      });
+
+      if (res.ok) {
+        alert("Task added!");
+        if (onAddTask) onAddTask(payload);
+      } else {
+        console.error("Error submitting task:", res.statusText);
+      }
     } catch (err) {
-      console.error("Add task failed:", err);
-      alert("Failed to add task. See console for details.");
+      console.error("Network error submitting task:", err);
     }
   };
 
   return (
-    <div className="p-4">
-      <h2 className="text-xl font-bold mb-4">Add Task</h2>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <input
-          type="text"
-          name="TaskName"
-          placeholder="Task Name"
-          value={formData.TaskName}
-          onChange={handleChange}
-          className="w-full border p-2 rounded"
-          required
-        />
-
-        <select
-          name="Type"
-          value={formData.Type}
-          onChange={handleChange}
-          className="w-full border p-2 rounded"
-        >
-          {["Chore", "Expense", "Task"].map((type) => (
-            <option key={type} value={type}>
-              {type}
+    <form onSubmit={handleSubmit} className="p-4 space-y-4">
+      <div>
+        <label>Realm</label>
+        <select name="Realm" value={formData.Realm} onChange={handleChange}>
+          {realms.map((r) => (
+            <option key={r} value={r}>
+              {r}
             </option>
           ))}
         </select>
+      </div>
 
-        <select
-          name="Realm"
-          value={formData.Realm}
-          onChange={handleChange}
-          className="w-full border p-2 rounded"
-        >
-          {[
-            "Auto",
-            "Clothing",
-            "College",
-            "Computer",
-            "Computing",
-            "Finance",
-            "Gifts",
-            "Health",
-            "Home",
-            "Learning",
-            "Misc",
-            "School",
-            "Sports",
-          ].map((realm) => (
-            <option key={realm} value={realm}>
-              {realm}
+      <div>
+        <label>Type</label>
+        <select name="Type" value={formData.Type} onChange={handleChange}>
+          {types.map((t) => (
+            <option key={t} value={t}>
+              {t}
             </option>
           ))}
         </select>
+      </div>
 
+      <div>
+        <label>Room / Subrealm</label>
         <input
           type="text"
           name="Room_Subrealm"
-          placeholder="Room or Subrealm"
           value={formData.Room_Subrealm}
           onChange={handleChange}
-          className="w-full border p-2 rounded"
         />
+      </div>
 
+      <div>
+        <label>Description</label>
+        <input
+          type="text"
+          name="Description"
+          value={formData.Description}
+          onChange={handleChange}
+          required
+        />
+      </div>
+
+      <div>
+        <label>Assigned To</label>
+        <input
+          type="text"
+          name="AssignedTo"
+          value={formData.AssignedTo}
+          onChange={handleChange}
+        />
+      </div>
+
+      <div>
+        <label>Frequency (days)</label>
         <input
           type="number"
           name="Frequency_days"
-          placeholder="Frequency in days"
           value={formData.Frequency_days}
           onChange={handleChange}
-          className="w-full border p-2 rounded"
         />
+      </div>
 
+      <div>
+        <label>Budget ($)</label>
+        <input
+          type="number"
+          name="Budget"
+          value={formData.Budget}
+          onChange={handleChange}
+        />
+      </div>
+
+      <div>
+        <label>Budget Year</label>
+        <input
+          type="number"
+          name="BudgetYear"
+          value={formData.BudgetYear}
+          onChange={handleChange}
+        />
+      </div>
+
+      <div>
+        <label>Priority</label>
+        <select
+          name="Priority"
+          value={formData.Priority}
+          onChange={handleChange}
+        >
+          {priorities.map((p) => (
+            <option key={p} value={p}>
+              {p}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div>
+        <label>Task Date</label>
         <input
           type="date"
           name="TaskDate"
           value={formData.TaskDate}
           onChange={handleChange}
-          className="w-full border p-2 rounded"
         />
+      </div>
 
-        <select
-          name="AssignedTo"
-          value={formData.AssignedTo}
-          onChange={handleChange}
-          className="w-full border p-2 rounded"
-        >
-          {["Steve", "Liz", "Caty", "Matt", "Tess", "All", "Other"].map(
-            (person) => (
-              <option key={person} value={person}>
-                {person}
-              </option>
-            )
-          )}
-        </select>
-
-        <select
-          name="Priority"
-          value={formData.Priority}
-          onChange={handleChange}
-          className="w-full border p-2 rounded"
-        >
-          {[1, 2, 3, 4, 5].map((priority) => (
-            <option key={priority} value={priority}>
-              {priority}
-            </option>
-          ))}
-        </select>
-
-        <input
-          type="number"
-          name="Budget"
-          placeholder="Budget (optional)"
-          value={formData.Budget}
-          onChange={handleChange}
-          className="w-full border p-2 rounded"
-        />
-
+      <div>
+        <label>Notes</label>
         <textarea
           name="Notes"
-          placeholder="Notes"
           value={formData.Notes}
           onChange={handleChange}
-          className="w-full border p-2 rounded"
         />
+      </div>
 
-        <div className="flex gap-4">
-          <button
-            type="submit"
-            className="bg-green-500 text-white px-4 py-2 rounded"
-          >
-            Submit
-          </button>
-          <button
-            type="button"
-            onClick={() => navigate("/")}
-            className="bg-gray-300 px-4 py-2 rounded"
-          >
-            Home
-          </button>
-        </div>
-      </form>
-    </div>
+      <button type="submit" className="bg-blue-500 text-white px-4 py-2 rounded">
+        Add Task
+      </button>
+    </form>
   );
-};
-
-export default AddTaskForm;
+}

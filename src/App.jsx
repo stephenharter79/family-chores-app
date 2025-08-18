@@ -47,23 +47,14 @@ function App() {
   };
 
   console.log("Rendering App, addTask is:", addTask);
+  console.log("App rendering, routes set. addTask wired up.");
 
 return (
     <Router>
       <div className="min-h-screen bg-gray-100 p-4">
         <Routes>
           <Route path="/" element={<Home />} />
-          <Route
-            path="/add-task"
-            element={
-              <AddTaskForm
-                onAddTask={(task) => {
-                  console.log("Prop test fired:", task);
-                  return addTask(task);
-                }}
-              />
-            }
-          />
+          <Route path="/add-task" element={<AddTaskForm onAddTask={addTask} />} />  {/* ✅ now wired up */}
           <Route path="/view-tasks" element={<ViewTasks />} />
         </Routes>
       </div>
