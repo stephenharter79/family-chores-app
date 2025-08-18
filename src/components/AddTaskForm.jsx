@@ -3,6 +3,9 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 const AddTaskForm = ({ onAddTask }) => {
+  console.log("AddTaskForm mounted, onAddTask:", onAddTask); // 👈 DEBUG LINE
+  console.log("AddTaskForm props:", { onAddTask });
+  
   const [formData, setFormData] = useState({
     TaskName: "",
     Type: "Chore",
@@ -25,11 +28,17 @@ const AddTaskForm = ({ onAddTask }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!onAddTask) {
+      console.error("onAddTask is not defined!");
+      alert("Task submission is not wired up.");
+      return;
+    }
     try {
       await onAddTask(formData);
       alert("Task successfully added!");
       navigate("/"); // back to home
     } catch (err) {
+      console.error("Add task failed:", err);
       alert("Failed to add task. See console for details.");
     }
   };
