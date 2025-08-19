@@ -1,6 +1,6 @@
 // src/components/AddTaskForm.jsx
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";   // 👈 import navigate
+import { useNavigate } from "react-router-dom";
 
 const SHEETDB_API = "https://sheetdb.io/api/v1/tltoey88bbdu6"; // your endpoint
 
@@ -20,8 +20,33 @@ const validRealms = [
   "Sports",
 ];
 
+const realmSubrealmMap = {
+  Auto: ["Camry07", "Camry14", "Odyssey19", "Other"],
+  Clothing: ["Steve"],
+  College: ["Caty", "Matt", "Tess"],
+  Computer: ["Misc"],
+  Computing: ["Chores App", "Misc"],
+  Finance: [
+    "Budget", "Caty", "Charity", "College", "Guards", "Guitar", "HSA",
+    "Investing", "Quicken", "Retirement"
+  ],
+  Gifts: ["Caty", "Liz", "Matt", "Multiple"],
+  Health: ["Steve"],
+  Home: [
+    "Basement", "Caty", "Dining Room", "Exterior", "Garage", "Ground Bathroom",
+    "Hall/Foyer/Steps", "Indoor", "Kids Bathroom", "Kitchen", "Living Room",
+    "Master", "Matt", "Multiple", "Office", "Piano Room", "Tess",
+    "Upstairs Hall", "Workout Room"
+  ],
+  Learning: ["Economics", "Investing", "Math", "ML"],
+  Misc: ["Misc", "Sports"],
+  School: ["Multiple"],
+  Sports: ["Cheer", "Soccer"],
+};
+
 const validTypes = ["Chore", "Task", "Expense"];
 const validPriorities = ["1", "2", "3", "4", "5"];
+const validAssignees = ["Steve", "Liz", "Caty", "Matt", "Tess", "All", "Other"];
 
 export default function AddTaskForm() {
   const navigate = useNavigate();
@@ -45,6 +70,8 @@ export default function AddTaskForm() {
     setFormData((prev) => ({
       ...prev,
       [name]: value,
+      // reset subrealm if realm changes
+      ...(name === "Realm" ? { Room_Subrealm: "" } : {}),
     }));
   };
 
@@ -63,7 +90,6 @@ export default function AddTaskForm() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Validation
     if (!validRealms.includes(formData.Realm)) {
       alert(`Realm must be one of: ${validRealms.join(", ")}`);
       return;
@@ -77,17 +103,14 @@ export default function AddTaskForm() {
       return;
     }
 
-    // Get next ID
     const nextId = await fetchNextId();
 
-    // Format date MM/DD/YYYY
     let formattedDate = formData.TaskDate;
     if (formattedDate) {
       const d = new Date(formData.TaskDate);
       formattedDate = `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
     }
 
-    // Build row (leave formula columns blank)
     const newTask = {
       ID: nextId,
       Realm: formData.Realm,
@@ -96,12 +119,12 @@ export default function AddTaskForm() {
       Description: formData.Description,
       AssignedTo: formData.AssignedTo,
       Frequency_days: formData.Frequency_days,
-      LastDone: "", // formula in sheet
-      LastDoneBy: "", // formula in sheet
-      NextDue: "", // formula in sheet
+      LastDone: "",
+      LastDoneBy: "",
+      NextDue: "",
       Budget: formData.Budget,
       BudgetYear: formData.BudgetYear,
-      AdjBudget: "", // formula in sheet
+      AdjBudget: "",
       Priority: formData.Priority,
       TaskDate: formattedDate,
       Notes: formData.Notes,
@@ -116,19 +139,7 @@ export default function AddTaskForm() {
 
       if (response.ok) {
         alert("Task added!");
-        setFormData({
-          Realm: "",
-          Type: "",
-          Room_Subrealm: "",
-          Description: "",
-          AssignedTo: "",
-          Frequency_days: "",
-          Budget: "",
-          BudgetYear: new Date().getFullYear(),
-          Priority: "3",
-          TaskDate: "",
-          Notes: "",
-        });
+        navigate("/"); // return home
       } else {
         alert("Error adding task");
       }
@@ -139,115 +150,181 @@ export default function AddTaskForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 p-4">
-      <input
-        type="text"
-        name="Description"
-        placeholder="Description"
-        value={formData.Description}
-        onChange={handleChange}
-        required
-        className="border p-2 w-full"
-      />
-      <select
-        name="Realm"
-        value={formData.Realm}
-        onChange={handleChange}
-        required
-        className="border p-2 w-full"
-      >
-        <option value="">Select Realm</option>
-        {validRealms.map((realm) => (
-          <option key={realm} value={realm}>
-            {realm}
-          </option>
-        ))}
-      </select>
-      <select
-        name="Type"
-        value={formData.Type}
-        onChange={handleChange}
-        required
-        className="border p-2 w-full"
-      >
-        <option value="">Select Type</option>
-        {validTypes.map((type) => (
-          <option key={type} value={type}>
-            {type}
-          </option>
-        ))}
-      </select>
-      <input
-        type="text"
-        name="Room_Subrealm"
-        placeholder="Room/Subrealm"
-        value={formData.Room_Subrealm}
-        onChange={handleChange}
-        className="border p-2 w-full"
-      />
-      <input
-        type="text"
-        name="AssignedTo"
-        placeholder="Assigned To"
-        value={formData.AssignedTo}
-        onChange={handleChange}
-        className="border p-2 w-full"
-      />
-      <input
-        type="number"
-        name="Frequency_days"
-        placeholder="Frequency (days)"
-        value={formData.Frequency_days}
-        onChange={handleChange}
-        className="border p-2 w-full"
-      />
-      <input
-        type="number"
-        name="Budget"
-        placeholder="Budget (in dollars)"
-        value={formData.Budget}
-        onChange={handleChange}
-        className="border p-2 w-full"
-      />
-      <input
-        type="number"
-        name="BudgetYear"
-        placeholder="Budget Year"
-        value={formData.BudgetYear}
-        onChange={handleChange}
-        className="border p-2 w-full"
-      />
-      <select
-        name="Priority"
-        value={formData.Priority}
-        onChange={handleChange}
-        required
-        className="border p-2 w-full"
-      >
-        {validPriorities.map((p) => (
-          <option key={p} value={p}>
-            {p}
-          </option>
-        ))}
-      </select>
-      <input
-        type="date"
-        name="TaskDate"
-        value={formData.TaskDate}
-        onChange={handleChange}
-        className="border p-2 w-full"
-      />
-      <textarea
-        name="Notes"
-        placeholder="Notes"
-        value={formData.Notes}
-        onChange={handleChange}
-        className="border p-2 w-full"
-      />
+    <form
+      onSubmit={handleSubmit}
+      className="space-y-3 p-4 max-w-md mx-auto bg-white shadow rounded"
+    >
+      {/* Type */}
+      <div>
+        <label className="block text-sm font-medium">Type</label>
+        <select
+          name="Type"
+          value={formData.Type}
+          onChange={handleChange}
+          required
+          className="border p-1 w-full rounded"
+        >
+          <option value="">Select Type</option>
+          {validTypes.map((type) => (
+            <option key={type} value={type}>
+              {type}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Realm */}
+      <div>
+        <label className="block text-sm font-medium">Realm</label>
+        <select
+          name="Realm"
+          value={formData.Realm}
+          onChange={handleChange}
+          required
+          className="border p-1 w-full rounded"
+        >
+          <option value="">Select Realm</option>
+          {validRealms.map((realm) => (
+            <option key={realm} value={realm}>
+              {realm}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Subrealm */}
+      <div>
+        <label className="block text-sm font-medium">Room/Subrealm</label>
+        <select
+          name="Room_Subrealm"
+          value={formData.Room_Subrealm}
+          onChange={handleChange}
+          disabled={!formData.Realm}
+          className="border p-1 w-full rounded"
+        >
+          <option value="">Select Subrealm</option>
+          {formData.Realm &&
+            realmSubrealmMap[formData.Realm].map((sr) => (
+              <option key={sr} value={sr}>
+                {sr}
+              </option>
+            ))}
+        </select>
+      </div>
+
+      {/* Description */}
+      <div>
+        <label className="block text-sm font-medium">Description</label>
+        <input
+          type="text"
+          name="Description"
+          value={formData.Description}
+          onChange={handleChange}
+          required
+          className="border p-1 w-full rounded"
+        />
+      </div>
+
+      {/* Assigned To */}
+      <div>
+        <label className="block text-sm font-medium">Assigned To</label>
+        <select
+          name="AssignedTo"
+          value={formData.AssignedTo}
+          onChange={handleChange}
+          className="border p-1 w-full rounded"
+        >
+          <option value="">Select Person</option>
+          {validAssignees.map((p) => (
+            <option key={p} value={p}>
+              {p}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Frequency */}
+      <div>
+        <label className="block text-sm font-medium">Frequency (days)</label>
+        <input
+          type="number"
+          name="Frequency_days"
+          value={formData.Frequency_days}
+          onChange={handleChange}
+          className="border p-1 w-full rounded"
+        />
+      </div>
+
+      {/* Budget */}
+      <div>
+        <label className="block text-sm font-medium">Budget ($)</label>
+        <input
+          type="number"
+          name="Budget"
+          value={formData.Budget}
+          onChange={handleChange}
+          className="border p-1 w-full rounded"
+        />
+      </div>
+
+      {/* Budget Year */}
+      <div>
+        <label className="block text-sm font-medium">Budget Year</label>
+        <input
+          type="number"
+          name="BudgetYear"
+          value={formData.BudgetYear}
+          onChange={handleChange}
+          className="border p-1 w-full rounded"
+        />
+      </div>
+
+      {/* Priority */}
+      <div>
+        <label className="block text-sm font-medium">Priority (1=High, 5=Low)</label>
+        <select
+          name="Priority"
+          value={formData.Priority}
+          onChange={handleChange}
+          required
+          className="border p-1 w-full rounded"
+        >
+          {validPriorities.map((p) => (
+            <option key={p} value={p}>
+              {p}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Task Date */}
+      <div>
+        <label className="block text-sm font-medium">Task Date</label>
+        <input
+          type="date"
+          name="TaskDate"
+          value={formData.TaskDate}
+          onChange={handleChange}
+          className="border p-1 w-full rounded"
+        />
+      </div>
+
+      {/* Notes */}
+      <div>
+        <label className="block text-sm font-medium">Notes</label>
+        <textarea
+          name="Notes"
+          value={formData.Notes}
+          onChange={handleChange}
+          className="border p-1 w-full rounded"
+        />
+      </div>
+
+      {/* Buttons */}
       <div className="flex space-x-2">
         <button
           type="submit"
-          className="bg-blue-500 text-white px-4 py-2 rounded"
+          className="bg-blue-500 text-white px-4 py-1 rounded"
         >
           Add Task
         </button>
@@ -258,7 +335,7 @@ export default function AddTaskForm() {
               navigate("/");
             }
           }}
-          className="bg-gray-400 text-white px-4 py-2 rounded"
+          className="bg-gray-400 text-white px-4 py-1 rounded"
         >
           Cancel
         </button>
