@@ -10,11 +10,12 @@ const ViewTasks = () => {
     AssignedTo: [],
     Priority: "",
     Realm: "",
+    Subrealm: "", // NEW
     Type: "",
     startDate: "",
     endDate: "",
     sortBy: "date", // "date" | "priority"
-    excludeCompleted: true, // NEW: default to excluding completed
+    excludeCompleted: true,
   });
 
   const [tasks, setTasks] = useState([]);
@@ -29,6 +30,10 @@ const ViewTasks = () => {
     Notes: "N/A",
   });
 
+  // NEW: dynamic realm-subrealm mappings
+  const [realmToSubrealms, setRealmToSubrealms] = useState({});
+  const [allSubrealms, setAllSubrealms] = useState([]);
+
   const peopleOptions = ["Steve", "Liz", "Caty", "Matt", "Tess", "Other/Mult"];
   const realmOptions = [
     "Auto", "Clothing", "College", "Computer", "Computing",
@@ -37,7 +42,7 @@ const ViewTasks = () => {
   ];
   const typeOptions = ["Chore", "Expense", "Task"];
 
-  // Sort helper (reuse for fetch & completion)
+  // Sort helper
   const sortTasks = (list, sortBy) => {
     if (sortBy === "priority") {
       return [...list].sort((a, b) => {
@@ -76,8 +81,21 @@ const ViewTasks = () => {
       const res = await fetch(`${SHEETDB_URL}?sheet=Items`);
       const data = await res.json();
 
+      // build realm->subrealm map dynamically
+      const map = {};
+      data.forEach((task) => {
+        if (task.Realm && task.Room_Subrealm) {
+          if (!map[task.Realm]) map[task.Realm] = new Set();
+          map[task.Realm].add(task.Room_Subrealm);
+        }
+      });
+      const allSubs = Array.from(
+        new Set(data.map((t) => t.Room_Subrealm).filter(Boolean))
+      );
+      setRealmToSubrealms(map);
+      setAllSubrealms(allSubs);
+
       let filtered = data.filter((task) => {
-        // skip blank rows
         if (!task.ID || task.ID.trim() === "") return false;
         const assignedOk =
           filters.AssignedTo.length === 0 ||
@@ -85,8 +103,10 @@ const ViewTasks = () => {
         const priorityOk =
           !filters.Priority || `${task.Priority}` === `${filters.Priority}`;
         const realmOk = !filters.Realm || task.Realm === filters.Realm;
+        const subrealmOk =
+          !filters.Subrealm || task.Room_Subrealm === filters.Subrealm;
         const typeOk = !filters.Type || task.Type === filters.Type;
-        const nextDue = task.NextDue || task.TaskDate; // TaskDate for one-offs
+        const nextDue = task.NextDue || task.TaskDate;
         const dateOk =
           (!filters.startDate ||
             (nextDue && new Date(nextDue) >= new Date(filters.startDate))) &&
@@ -95,7 +115,15 @@ const ViewTasks = () => {
         const completedOk =
           !filters.excludeCompleted || task.TaskComplete !== "Y";
 
-        return assignedOk && priorityOk && realmOk && typeOk && dateOk && completedOk;
+        return (
+          assignedOk &&
+          priorityOk &&
+          realmOk &&
+          subrealmOk &&
+          typeOk &&
+          dateOk &&
+          completedOk
+        );
       });
 
       setTasks(sortTasks(filtered, filters.sortBy));
@@ -146,7 +174,6 @@ const ViewTasks = () => {
 
       if (!postRes.ok) throw new Error(await postRes.text());
 
-      // Patch local state and re-sort
       setTasks((prev) => {
         const updated = prev.map((t) => {
           if (t.ID !== completingTask.ID) return t;
@@ -163,7 +190,7 @@ const ViewTasks = () => {
             const yyyy = newDate.getFullYear();
             nextDue = `${mm}/${dd}/${yyyy}`;
           } else if (t.TaskDate) {
-            nextDue = t.TaskDate; // one-off
+            nextDue = t.TaskDate;
           }
 
           return {
@@ -171,7 +198,7 @@ const ViewTasks = () => {
             LastDone: completionRecord.CompletedDate,
             LastDoneBy: completionRecord.CompletedBy,
             NextDue: nextDue,
-            TaskComplete: "Y", // NEW: mark complete in local state
+            TaskComplete: "Y",
           };
         });
 
@@ -194,18 +221,20 @@ const ViewTasks = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
         <fieldset className="border p-3 rounded">
           <legend className="font-semibold">Filter by Person</legend>
-          {["Steve", "Liz", "Caty", "Matt", "Tess", "All", "Other"].map((person) => (
-            <label key={person} className="block">
-              <input
-                type="checkbox"
-                name="AssignedTo"
-                value={person}
-                checked={filters.AssignedTo.includes(person)}
-                onChange={handleFilterChange}
-              />{" "}
-              {person}
-            </label>
-          ))}
+          {["Steve", "Liz", "Caty", "Matt", "Tess", "All", "Other"].map(
+            (person) => (
+              <label key={person} className="block">
+                <input
+                  type="checkbox"
+                  name="AssignedTo"
+                  value={person}
+                  checked={filters.AssignedTo.includes(person)}
+                  onChange={handleFilterChange}
+                />{" "}
+                {person}
+              </label>
+            )
+          )}
         </fieldset>
 
         <div>
@@ -220,7 +249,8 @@ const ViewTasks = () => {
             />
           </label>
 
-          <label className="block mt-2">Realm:
+          <label className="block mt-2">
+            Realm:
             <select
               name="Realm"
               value={filters.Realm}
@@ -229,12 +259,36 @@ const ViewTasks = () => {
             >
               <option value="">-- Any --</option>
               {realmOptions.map((r) => (
-                <option key={r} value={r}>{r}</option>
+                <option key={r} value={r}>
+                  {r}
+                </option>
               ))}
             </select>
           </label>
 
-          <label className="block mt-2">Type:
+          {/* NEW Subrealm filter */}
+          <label className="block mt-2">
+            Subrealm:
+            <select
+              name="Subrealm"
+              value={filters.Subrealm}
+              onChange={handleFilterChange}
+              className="w-full border p-2 rounded"
+            >
+              <option value="">-- Any --</option>
+              {(filters.Realm && realmToSubrealms[filters.Realm]
+                ? Array.from(realmToSubrealms[filters.Realm])
+                : allSubrealms
+              ).map((sr) => (
+                <option key={sr} value={sr}>
+                  {sr}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="block mt-2">
+            Type:
             <select
               name="Type"
               value={filters.Type}
@@ -243,12 +297,15 @@ const ViewTasks = () => {
             >
               <option value="">-- Any --</option>
               {typeOptions.map((t) => (
-                <option key={t} value={t}>{t}</option>
+                <option key={t} value={t}>
+                  {t}
+                </option>
               ))}
             </select>
           </label>
 
-          <label className="block mt-2">Priority:
+          <label className="block mt-2">
+            Priority (1 - Highest, 5 - Lowest):
             <select
               name="Priority"
               value={filters.Priority}
@@ -257,13 +314,16 @@ const ViewTasks = () => {
             >
               <option value="">-- Any --</option>
               {[1, 2, 3, 4, 5].map((p) => (
-                <option key={p} value={p}>{p}</option>
+                <option key={p} value={p}>
+                  {p}
+                </option>
               ))}
             </select>
           </label>
 
           <div className="grid grid-cols-2 gap-2 mt-2">
-            <label className="block">Start Date:
+            <label className="block">
+              Start Date:
               <input
                 type="date"
                 name="startDate"
@@ -272,7 +332,8 @@ const ViewTasks = () => {
                 className="w-full border p-2 rounded"
               />
             </label>
-            <label className="block">End Date:
+            <label className="block">
+              End Date:
               <input
                 type="date"
                 name="endDate"
@@ -283,7 +344,8 @@ const ViewTasks = () => {
             </label>
           </div>
 
-          <label className="block mt-2">Sort By:
+          <label className="block mt-2">
+            Sort By:
             <select
               name="sortBy"
               value={filters.sortBy}
@@ -320,7 +382,10 @@ const ViewTasks = () => {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {tasks.map((task) => (
-            <div key={task.ID} className="p-4 rounded-2xl shadow bg-white border">
+            <div
+              key={task.ID}
+              className="p-4 rounded-2xl shadow bg-white border"
+            >
               <div className="flex items-start justify-between">
                 <h3 className="text-lg font-semibold">
                   {task.Description || task.TaskName || `Task ${task.ID}`}
@@ -330,25 +395,30 @@ const ViewTasks = () => {
                 </span>
               </div>
               <p className="text-sm text-gray-600 mt-1">
-                <strong>Type:</strong> {task.Type || "-"} | <strong>Realm:</strong> {task.Realm || "-"} |
-                {" "}
+                <strong>Type:</strong> {task.Type || "-"} |{" "}
+                <strong>Realm:</strong> {task.Realm || "-"} |{" "}
                 <strong>Subrealm:</strong> {task.Room_Subrealm || "-"}
               </p>
               <p className="text-sm text-gray-600">
                 <strong>Assigned To:</strong> {task.AssignedTo || "-"}
               </p>
               <p className="text-sm text-gray-500 mt-1">
-                <strong>Due:</strong> {task.NextDue || task.TaskDate || "N/A"}
+                <strong>Due:</strong>{" "}
+                {task.NextDue || task.TaskDate || "N/A"}
               </p>
               {task.TaskComplete === "Y" && (
-                <p className="text-xs text-green-700 font-semibold mt-1">✅ Completed</p>
+                <p className="text-xs text-green-700 font-semibold mt-1">
+                  ✅ Completed
+                </p>
               )}
               {task.TaskComplete !== "Y" && (
                 <button
                   onClick={() => {
                     setCompletingTask(task);
                     setCompletionForm({
-                      CompletedDate: new Date().toISOString().split("T")[0],
+                      CompletedDate: new Date()
+                        .toISOString()
+                        .split("T")[0],
                       CompletedBy: task.AssignedTo || "",
                       Cost: 0,
                       Notes: "N/A",
@@ -369,7 +439,8 @@ const ViewTasks = () => {
         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-2xl shadow-xl w-full max-w-md">
             <h3 className="text-xl font-bold mb-4">
-              Complete Task: {completingTask.Description || completingTask.TaskName}
+              Complete Task:{" "}
+              {completingTask.Description || completingTask.TaskName}
             </h3>
 
             <label className="block mb-2 text-sm">
@@ -393,7 +464,9 @@ const ViewTasks = () => {
               >
                 <option value="">Select</option>
                 {peopleOptions.map((p) => (
-                  <option key={p} value={p}>{p}</option>
+                  <option key={p} value={p}>
+                    {p}
+                  </option>
                 ))}
               </select>
             </label>
